@@ -1,0 +1,137 @@
+{% extends "layout.html" %}
+
+{% block title %}Validation humaine - SmartCam{% endblock %}
+
+{% block content %}
+<div class="validation-page">
+    <h2>Validation humaine des détections</h2>
+    <p class="page-description">
+        Validez ou rejetez les détections automatiques pour améliorer la précision du système.
+    </p>
+
+    {% if results.length > 0 %}
+    <div class="validation-grid">
+        {% for result in results %}
+        <div class="validation-card" id="validation-{{ result.id }}">
+            <div class="validation-header">
+                <span class="validation-type {{ result.type_analyse | lower }}">
+                    {% if result.type_analyse == 'Police' %}🚔 {{ result.analysis_name }}
+                    {% elif result.type_analyse == 'Pompier' %}🚒 {{ result.analysis_name }}
+                    {% elif result.type_analyse == 'Ambulance' %}🚑 {{ result.analysis_name }}
+                    {% endif %}
+                </span>
+                <span class="severity {{ result.severity }}">{{ result.severity }}</span>
+            </div>
+
+            <div class="validation-image-container">
+                <img src="/api/images/{{ result.fk_image }}" alt="Image #{{ result.fk_image }}" class="validation-image" loading="lazy">
+            </div>
+
+            <div class="validation-info">
+                <div class="info-row">
+                    <span class="label">Date:</span>
+                    <span class="value">{{ result.date | date('DD/MM/YYYY HH:mm') }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Caméra:</span>
+                    <span class="value">{{ result.camera_ip }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Confiance:</span>
+                    <span class="value confidence-bar">
+                        <div class="confidence-fill" style="width: {{ (result.confidence * 100) }}%;">
+                            {{ (result.confidence * 100) | round(1, 'common') }}%
+                        </div>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Résultat:</span>
+                    <span class="value result {{ result.result }}">{{ result.result }}</span>
+                </div>
+            </div>
+
+            <div class="validation-actions">
+                <button class="btn btn-success btn-validate" data-id="{{ result.id }}" data-validate="true" data-image="{{ result.fk_image }}">
+                    ✓ Valider
+                </button>
+                <button class="btn btn-danger btn-reject" data-id="{{ result.id }}" data-validate="false" data-image="{{ result.fk_image }}">
+                    ✗ Rejeter
+                </button>
+                <a href="/images/{{ result.fk_image }}" class="btn btn-secondary btn-details">
+                    🔍 Détails
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-data-large">
+        <div class="no-data-icon">✓</div>
+        <h3>Aucune validation en attente</h3>
+        <p>Toutes les détections positives ont été vérifiées.</p>
+        <a href="/alerts" class="btn btn-primary">Voir les alertes</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function validateResult(resultId, isValid, imageId) {
+    try {
+        await apiRequest(`/api/results/${resultId}/verify`, {
+            method: 'PUT',
+            body: JSON.stringify({ verified: isValid })
+        });
+        
+        // Remove the card from the view
+        const card = document.getElementById(`validation-${resultId}`);
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                card.remove();
+                
+                // Check if there are no more cards
+                const remaining = document.querySelectorAll('.validation-card').length;
+                if (remaining === 0) {
+                    location.reload();
+                }
+            }, 300);
+        }
+        
+        showNotification(
+            isValid ? 'Détection validée avec succès' : 'Détection rejetée', 
+            'success'
+        );
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+// Wire up buttons after DOM ready
+document.addEventListener('DOMContentLoaded', function () {
+    // Validate / Reject buttons
+    document.querySelectorAll('.btn-validate, .btn-reject').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const id = this.dataset.id;
+            const isValid = this.dataset.validate === 'true';
+            const imageId = this.dataset.image;
+            validateResult(id, isValid, imageId);
+        });
+    });
+
+    // Optional: clicking the image could open the full image in a new tab (non-blocking)
+    document.querySelectorAll('.validation-image').forEach(img => {
+        img.addEventListener('click', function (e) {
+            // allow click to open image in new tab without navigating the card link
+            e.stopPropagation();
+            const src = this.src;
+            window.open(src, '_blank');
+        });
+    });
+});
+</script>
+{% endblock %}

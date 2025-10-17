@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SmartCam - Surveillance Intelligente{% endblock %}</title>
+    <link rel="stylesheet" href="/css/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🎥 SmartCam</h1>
+            </div>
+            <ul class="navbar-menu">
+                <li><a href="/" class="{% if page == 'dashboard' %}active{% endif %}">Tableau de bord</a></li>
+                <li><a href="/cameras" class="{% if page == 'cameras' %}active{% endif %}">Caméras</a></li>
+                <li><a href="/alerts" class="{% if page == 'alerts' %}active{% endif %}">Alertes</a></li>
+                <li><a href="/validation" class="{% if page == 'validation' %}active{% endif %}">Validation</a></li>
+                <li><a href="/analyses" class="{% if page == 'analyses' %}active{% endif %}">Analyses</a></li>
+                <li><a href="/map" class="{% if page == 'map' %}active{% endif %}">Carte</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 SmartCam-IA - Plateforme de surveillance intelligente</p>
+        </div>
+    </footer>
+
+    <script src="/js/main.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

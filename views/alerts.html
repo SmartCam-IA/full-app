@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %}Alertes - SmartCam{% endblock %}
+
+{% block content %}
+<div class="alerts-page">
+    <h2>Gestion des alertes</h2>
+
+    <div class="filters">
+        <label>
+            Type d'intervention :
+            <select id="typeFilter">
+                <option value="">Tous</option>
+                <option value="Police">🚔 Police</option>
+                <option value="Pompier">🚒 Pompiers</option>
+                <option value="Ambulance">🚑 Ambulance</option>
+            </select>
+        </label>
+        
+        <label>
+            Statut :
+            <select id="statusFilter">
+                <option value="false">Non résolues</option>
+                <option value="true">Résolues</option>
+                <option value="">Toutes</option>
+            </select>
+        </label>
+        
+        <label>
+            Vérification :
+            <select id="verificationFilter">
+                <option value="">Toutes</option>
+                <option value="true">Vérifiées</option>
+                <option value="false">Non vérifiées</option>
+            </select>
+        </label>
+    </div>
+
+    {% if alerts.length > 0 %}
+    <div class="alerts-list">
+        {% for alert in alerts %}
+        <div class="alert-item {{ alert.severity }}" data-type="{{ alert.type_analyse }}" data-resolved="{{ alert.is_resolved }}" data-verified="{{ alert.human_verification }}">
+            <a href="/alerts/{{ alert.id }}" class="alert-link-wrapper">
+                <div class="alert-icon">
+                    {% if alert.type_analyse == 'Police' %}🚔
+                    {% elif alert.type_analyse == 'Pompier' %}🚒
+                    {% elif alert.type_analyse == 'Ambulance' %}🚑
+                    {% endif %}
+                </div>
+                <div class="alert-content">
+                    <div class="alert-header">
+                        <h3>{{ alert.analysis_name }}</h3>
+                        <span class="alert-time">{{ alert.date | date('DD/MM/YYYY HH:mm:ss') }}</span>
+                    </div>
+                    <div class="alert-details">
+                        <p><strong>Caméra:</strong> {{ alert.camera_ip }}</p>
+                        <p><strong>Gravité:</strong> <span class="severity {{ alert.severity }}">{{ alert.severity }}</span></p>
+                            <p><strong>Confiance:</strong> {{ (alert.confidence * 100) | round(1, 'common') }}%</p>
+                        <p><strong>Résultat:</strong> <span class="result {{ alert.result }}">{{ alert.result }}</span></p>
+                    </div>
+                    <div class="alert-status">
+                        {% if alert.is_resolved %}
+                            <span class="badge resolved">✓ Résolue</span>
+                        {% else %}
+                            <span class="badge unresolved">⏳ Non résolue</span>
+                        {% endif %}
+                        
+                        {% if alert.human_verification %}
+                            <span class="badge verified">✓ Vérifiée</span>
+                        {% else %}
+                            <span class="badge unverified">⚠️ Non vérifiée</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            <div class="alert-actions">
+                <button class="btn btn-sm btn-image" data-id="{{ alert.fk_image }}">🖼️ Image</button>
+                {% if not alert.human_verification %}
+                    <button class="btn btn-sm btn-primary btn-verify" data-id="{{ alert.id }}" data-verify="true">✓ Vérifier</button>
+                    <button class="btn btn-sm btn-secondary btn-verify" data-id="{{ alert.id }}" data-verify="false">✗ Rejeter</button>
+                {% endif %}
+                {% if not alert.is_resolved %}
+                    <button class="btn btn-sm btn-success btn-resolve" data-id="{{ alert.id }}">✓ Résoudre</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-data">Aucune alerte trouvée.</p>
+    {% endif %}
+</div>
+
+<!-- Modal pour afficher l'image -->
+<div id="imageModal" class="modal">
+    <div class="modal-content modal-image">
+    <span class="close" id="closeImageModalBtn">&times;</span>
+        <img id="alertImage" src="" alt="Image de l'alerte">
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/alerts.js"></script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block title %}Détails de l'image #{{ image.id }} - SmartCam{% endblock %}
+
+{% block content %}
+<div class="image-detail-page">
+    <div class="page-header">
+        <h2>Détails de l'Image #{{ image.id }}</h2>
+        <a href="javascript:history.back()" class="btn btn-secondary">← Retour</a>
+    </div>
+
+    <div class="detail-grid image-layout">
+        <!-- Image Display Card -->
+        <div class="detail-card image-card">
+            <h3>Image capturée</h3>
+            <div class="image-display-container">
+                <img src="/api/images/{{ image.id }}" alt="Image #{{ image.id }}" class="image-display-large">
+            </div>
+            
+            <div class="image-metadata">
+                <div class="meta-item">
+                    <label>ID:</label>
+                    <span>{{ image.id }}</span>
+                </div>
+                <div class="meta-item">
+                    <label>Date de capture:</label>
+                    <span>{{ image.date | date('DD/MM/YYYY HH:mm:ss') }}</span>
+                </div>
+                <div class="meta-item">
+                    <label>URI:</label>
+                    <span class="uri-text">{{ image.uri }}</span>
+                </div>
+                <div class="meta-item">
+                    <label>Caméra ID:</label>
+                    <span>
+                        {% if image.fk_camera %}
+                            <a href="/cameras/{{ image.fk_camera }}" class="link">Caméra #{{ image.fk_camera }}</a>
+                        {% else %}
+                            Non spécifiée
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyses Results Card -->
+        <div class="detail-card analyses-card">
+            <h3>Analyses effectuées ({{ analyses.length }})</h3>
+            
+            {% if analyses.length > 0 %}
+            <div class="analyses-list">
+                {% for analysis in analyses %}
+                <div class="analysis-result-item {{ analysis.result }}">
+                    <div class="analysis-header">
+                        <div class="analysis-name">
+                            <span class="analysis-icon">
+                                {% if analysis.type_analyse == 'Police' %}🚔
+                                {% elif analysis.type_analyse == 'Pompier' %}🚒
+                                {% elif analysis.type_analyse == 'Ambulance' %}🚑
+                                {% endif %}
+                            </span>
+                            <strong>{{ analysis.analysis_name }}</strong>
+                        </div>
+                        <span class="result-badge {{ analysis.result }}">{{ analysis.result }}</span>
+                    </div>
+
+                    <div class="analysis-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Type:</span>
+                            <span class="detail-value">{{ analysis.type_analyse }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Confiance:</span>
+                            <span class="detail-value">
+                                <div class="confidence-bar-container">
+                                    <div class="confidence-bar-fill {{ analysis.result }}" style="width: {{ (analysis.confidence * 100) }}%">
+                                        {{ (analysis.confidence * 100) | round(1, 'common') }}%
+                                    </div>
+                                </div>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Gravité:</span>
+                            <span class="detail-value">
+                                <span class="severity {{ analysis.severity }}">{{ analysis.severity }}</span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date d'analyse:</span>
+                            <span class="detail-value">{{ analysis.date | date('DD/MM/YYYY HH:mm:ss') }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Vérification:</span>
+                            <span class="detail-value">
+                                {% if analysis.human_verification %}
+                                    <span class="badge verified">✓ Vérifiée</span>
+                                {% else %}
+                                    <span class="badge unverified">⚠️ Non vérifiée</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Résolution:</span>
+                            <span class="detail-value">
+                                {% if analysis.is_resolved %}
+                                    <span class="badge resolved">✓ Résolue</span>
+                                {% else %}
+                                    <span class="badge unresolved">⏳ Non résolue</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if analysis.details %}
+                    <details class="analysis-technical-details">
+                        <summary>Détails techniques</summary>
+                        <pre>{{ analysis.details }}</pre>
+                    </details>
+                    {% endif %}
+
+                    <div class="analysis-actions">
+                        <a href="/alerts/{{ analysis.id }}" class="btn btn-sm">Voir l'alerte</a>
+                        {% if not analysis.human_verification %}
+                            <button class="btn btn-sm btn-primary btn-verify" data-id="{{ analysis.id }}" data-verify="true">✓ Vérifier</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="no-data">Aucune analyse effectuée sur cette image.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/alerts.js"></script>
+{% endblock %}

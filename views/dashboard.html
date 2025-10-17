@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+
+{% block title %}Tableau de bord - SmartCam{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Tableau de bord général</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📹</div>
+            <div class="stat-info">
+                <h3>{{ cameraStats.total | default(0) }}</h3>
+                <p>Caméras totales</p>
+            </div>
+        </div>
+        
+        <div class="stat-card active">
+            <div class="stat-icon">✅</div>
+            <div class="stat-info">
+                <h3>{{ cameraStats.active | default(0) }}</h3>
+                <p>Caméras actives</p>
+            </div>
+        </div>
+        
+        <div class="stat-card error">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-info">
+                <h3>{{ cameraStats.error | default(0) }}</h3>
+                <p>En erreur</p>
+            </div>
+        </div>
+        
+        <div class="stat-card inactive">
+            <div class="stat-icon">⏸️</div>
+            <div class="stat-info">
+                <h3>{{ cameraStats.inactive | default(0) }}</h3>
+                <p>Inactives</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="alerts-section">
+        <h3>Alertes récentes (dernières 24h)</h3>
+        
+        <div class="alert-stats">
+            {% for stat in alertStats %}
+            <div class="alert-stat-card {{ stat.type_analyse | lower }}">
+                <h4>
+                    {% if stat.type_analyse == 'Police' %}🚔 Police
+                    {% elif stat.type_analyse == 'Pompier' %}🚒 Pompiers
+                    {% elif stat.type_analyse == 'Ambulance' %}🚑 Ambulance
+                    {% endif %}
+                </h4>
+                <div class="alert-numbers">
+                    <div>
+                        <strong>{{ stat.total | default(0) }}</strong>
+                        <span>Total</span>
+                    </div>
+                    <div>
+                        <strong>{{ stat.positive | default(0) }}</strong>
+                        <span>Positives</span>
+                    </div>
+                    <div class="unresolved">
+                        <strong>{{ stat.unresolved | default(0) }}</strong>
+                        <span>Non résolues</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="recent-alerts">
+        <h3>Dernières alertes non résolues</h3>
+        
+    {% if recentAlerts and recentAlerts | length > 0 %}
+        <table class="alerts-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Caméra</th>
+                    <th>Gravité</th>
+                    <th>Confiance</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in recentAlerts %}
+                <tr>
+                    <td>{{ alert.date | date('DD/MM/YYYY HH:mm') }}</td>
+                    <td>
+                        <span class="badge {{ alert.type_analyse | lower }}">
+                            {% if alert.type_analyse == 'Police' %}🚔 {{ alert.analysis_name }}
+                            {% elif alert.type_analyse == 'Pompier' %}🚒 {{ alert.analysis_name }}
+                            {% elif alert.type_analyse == 'Ambulance' %}🚑 {{ alert.analysis_name }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>{{ alert.camera_ip }}</td>
+                    <td><span class="severity {{ alert.severity }}">{{ alert.severity }}</span></td>
+                    <td>{{ (alert.confidence * 100) | round(1, 'common') }}%</td>
+                    <td>
+                        <a href="/alerts/{{ alert.id }}" class="btn btn-sm">Voir</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-data">Aucune alerte non résolue pour le moment.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Refresh dashboard every 30 seconds
+    setInterval(() => {
+        window.location.reload();
+    }, 30000);
+</script>
+{% endblock %}

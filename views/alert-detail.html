@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+
+{% block title %}Détails de l'alerte #{{ alert.id }} - SmartCam{% endblock %}
+
+{% block content %}
+<div class="alert-detail-page">
+    <div class="page-header">
+        <h2>Détails de l'Alerte #{{ alert.id }}</h2>
+        <a href="/alerts" class="btn btn-secondary">← Retour aux alertes</a>
+    </div>
+
+    <div class="detail-grid">
+        <!-- Alert Information Card -->
+        <div class="detail-card alert-info-card {{ alert.severity }}">
+            <div class="alert-header-detail">
+                <div class="alert-icon-large">
+                    {% if alert.type_analyse == 'Police' %}🚔
+                    {% elif alert.type_analyse == 'Pompier' %}🚒
+                    {% elif alert.type_analyse == 'Ambulance' %}🚑
+                    {% endif %}
+                </div>
+                <div>
+                    <h3>{{ alert.analysis_name }}</h3>
+                    <p class="alert-type">{{ alert.type_analyse }}</p>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Date et heure</label>
+                    <span>{{ alert.date | date('DD/MM/YYYY HH:mm:ss') }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Gravité</label>
+                    <span class="severity {{ alert.severity }}">{{ alert.severity }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Résultat</label>
+                    <span class="result {{ alert.result }}">{{ alert.result }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Confiance</label>
+                    <span>{{ (alert.confidence * 100) | round(1, 'common') }}%</span>
+                </div>
+                <div class="info-item">
+                    <label>Caméra</label>
+                    <span>{{ alert.camera_ip | default('Non spécifiée') }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Vérification humaine</label>
+                    <span class="{% if alert.human_verification %}verified{% else %}unverified{% endif %}">
+                        {% if alert.human_verification %}✓ Vérifiée{% else %}⚠️ Non vérifiée{% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <label>Statut</label>
+                    <span class="{% if alert.is_resolved %}resolved{% else %}unresolved{% endif %}">
+                        {% if alert.is_resolved %}✓ Résolue{% else %}⏳ Non résolue{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            {% if alert.details %}
+            <div class="alert-details-section">
+                <h4>Détails techniques</h4>
+                <pre>{{ alert.details }}</pre>
+            </div>
+            {% endif %}
+
+            <div class="alert-actions-detail">
+                {% if not alert.human_verification %}
+                    <button class="btn btn-primary btn-verify" data-id="{{ alert.id }}" data-verify="true">✓ Vérifier comme valide</button>
+                    <button class="btn btn-secondary btn-verify" data-id="{{ alert.id }}" data-verify="false">✗ Rejeter comme faux positif</button>
+                {% endif %}
+                {% if not alert.is_resolved %}
+                    <button class="btn btn-success btn-resolve" data-id="{{ alert.id }}">✓ Marquer comme résolue</button>
+                {% endif %}
+                <a href="/images/{{ alert.fk_image }}" class="btn btn-info">🖼️ Voir l'image complète</a>
+            </div>
+        </div>
+
+        <!-- Image Card -->
+        <div class="detail-card">
+            <h3>Image associée</h3>
+            <div class="alert-image-container">
+                <img src="/api/images/{{ alert.fk_image }}" alt="Image de l'alerte" class="alert-image-large">
+                <div class="image-meta">
+                    <p><strong>Image ID:</strong> {{ alert.fk_image }}</p>
+                    <p><strong>Date capture:</strong> {{ alert.image_date | date('DD/MM/YYYY HH:mm:ss') }}</p>
+                    <p><strong>URI:</strong> {{ alert.image_uri }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/alerts.js"></script>
+{% endblock %}

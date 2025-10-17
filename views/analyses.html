@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+
+{% block title %}Configuration des analyses - SmartCam{% endblock %}
+
+{% block content %}
+<div class="analyses-page">
+    <h2>Configuration des analyses</h2>
+
+    <div class="analyses-grid">
+        {% for analysis in analyses %}
+        <div class="analysis-card {{ analysis.type_analyse | lower }}">
+            <div class="analysis-header">
+                <h3>
+                    {% if analysis.type_analyse == 'Police' %}🚔
+                    {% elif analysis.type_analyse == 'Pompier' %}🚒
+                    {% elif analysis.type_analyse == 'Ambulance' %}🚑
+                    {% endif %}
+                    {{ analysis.name }}
+                </h3>
+                <label class="switch">
+                    <input type="checkbox" 
+                           {% if analysis.is_active %}checked{% endif %}
+                           class="toggle-analysis">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="analysis-info">
+                <p><strong>Type:</strong> {{ analysis.type_analyse }}</p>
+                <p><strong>Seuil de détection:</strong> {{ (analysis.detection_threshold * 100).toFixed(0) }}%</p>
+                <p><strong>Positifs nécessaires:</strong> {{ analysis.nbr_positive_necessary }}</p>
+                <p><strong>Intervalle d'extraction:</strong> {{ analysis.image_extraction_interval }}s</p>
+                <p><strong>Statut:</strong> 
+                    <span class="badge {% if analysis.is_active %}active{% else %}inactive{% endif %}">
+                        {% if analysis.is_active %}Activée{% else %}Désactivée{% endif %}
+                    </span>
+                </p>
+            </div>
+            
+            <div class="analysis-actions">
+                <button class="btn btn-sm btn-secondary btn-edit-analysis" data-id="{{ analysis.id }}">⚙️ Configurer</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal pour configurer une analyse -->
+<div id="analysisModal" class="modal">
+    <div class="modal-content">
+    <span class="close" id="closeAnalysisModalBtn">&times;</span>
+        <h3>Configurer l'analyse</h3>
+    <form id="analysisForm">
+            <input type="hidden" id="analysisId" name="id">
+            
+            <div class="form-group">
+                <label for="detection_threshold">Seuil de détection (%)</label>
+                <input type="range" id="detection_threshold" name="detection_threshold" 
+                       min="0" max="100" step="5" value="50" 
+                       class="threshold-input">
+                <span id="thresholdValue">50%</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="nbr_positive_necessary">Nombre de détections positives consécutives nécessaires</label>
+                <input type="number" id="nbr_positive_necessary" name="nbr_positive_necessary" 
+                       min="1" max="10" value="2">
+            </div>
+            
+            <div class="form-group">
+                <label for="image_extraction_interval">Intervalle d'extraction d'images (secondes)</label>
+                <input type="number" id="image_extraction_interval" name="image_extraction_interval" 
+                       min="1" max="60" value="1">
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelAnalysisModalBtn">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/analyses.js"></script>
+{% endblock %}

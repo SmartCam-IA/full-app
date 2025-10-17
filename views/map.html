@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block title %}Carte des caméras - SmartCam{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="map-page">
+    <h2>Carte interactive des caméras</h2>
+    
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+    
+    <div class="map-legend">
+        <h4>Légende</h4>
+        <div class="legend-item">
+            <span class="marker active">📹</span> Caméra active
+        </div>
+        <div class="legend-item">
+            <span class="marker inactive">📹</span> Caméra inactive
+        </div>
+        <div class="legend-item">
+            <span class="marker error">📹</span> Caméra en erreur
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize map
+    const map = L.map('map').setView([48.8566, 2.3522], 12);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Fetch and display cameras
+    fetch('/api/cameras')
+        .then(response => response.json())
+        .then(cameras => {
+            cameras.forEach(camera => {
+                // Get position info if available
+                if (camera.fk_position) {
+                    fetch(`/api/positions/${camera.fk_position}`)
+                        .then(response => response.json())
+                        .then(position => {
+                            const icon = L.divIcon({
+                                html: '📹',
+                                className: `camera-marker ${camera.status}`,
+                                iconSize: [30, 30]
+                            });
+                            
+                            const marker = L.marker([position.latitude, position.longitude], { icon })
+                                .addTo(map);
+                            
+                            marker.bindPopup(`
+                                <div class="camera-popup">
+                                    <h4>Caméra #${camera.id}</h4>
+                                    <p><strong>IP:</strong> ${camera.ip}</p>
+                                    <p><strong>Statut:</strong> <span class="status ${camera.status}">${camera.status}</span></p>
+                                    <p><strong>Emplacement:</strong> ${position.label || 'Non défini'}</p>
+                                    <a href="/cameras" class="btn btn-sm">Gérer</a>
+                                </div>
+                            `);
+                        });
+                }
+            });
+        })
+        .catch(error => console.error('Erreur lors du chargement des caméras:', error));
+</script>
+{% endblock %}

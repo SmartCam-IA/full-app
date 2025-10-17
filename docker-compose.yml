@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_USER=smartcam
+      - DB_PASSWORD=DB_PASSWORD
+      - DB_NAME=smartcam_db
+      - ENCRYPTION_KEY=ENCRYPTION_KEY
+      - HUGGINGFACE_API_KEY=HUGGINGFACE_API_KEY
+      - STORAGE_PATH=/usr/src/app/storage/images
+      - STORAGE_TYPE=local
+      - MOTION_DETECTION_THRESHOLD=30
+      - CAMERA_RECONNECT_INTERVAL=30000
+      - CAMERA_TIMEOUT=60000
+      - MAX_CONCURRENT_ANALYSIS=5
+    volumes:
+      - ./storage:/usr/src/app/storage
+    depends_on:
+      - mariadb
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:10.11
+    environment:
+      - MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE=smartcam_db
+      - MYSQL_USER=smartcam
+      - MYSQL_PASSWORD=DB_PASSWORD
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+
+volumes:
+  mariadb_data:

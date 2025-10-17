@@ -1,0 +1,165 @@
+{% extends "layout.html" %}
+
+{% block title %}Détails de la caméra #{{ camera.id }} - SmartCam{% endblock %}
+
+{% block content %}
+<div class="camera-detail-page">
+    <div class="page-header">
+        <h2>Détails de la Caméra #{{ camera.id }}</h2>
+        <div class="header-actions">
+            <a href="/cameras" class="btn btn-secondary">← Retour à la liste</a>
+            <button class="btn btn-primary btn-edit" data-id="{{ camera.id }}">✏️ Modifier</button>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <!-- Camera Information Card -->
+        <div class="detail-card">
+            <h3>Informations de la caméra</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Statut</label>
+                    <span class="status-badge {{ camera.status }}">{{ camera.status }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Adresse IP</label>
+                    <span>{{ camera.ip }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Nom d'utilisateur</label>
+                    <span>{{ camera.username }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Modèle</label>
+                    <span>
+                        {% if camera.model %}
+                            {{ camera.model }}
+                        {% else %}
+                            Non spécifié
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <label>Dernière connexion</label>
+                    <span>
+                        {% if camera.last_connexion %}
+                            {{ camera.last_connexion }}
+                        {% else %}
+                            Jamais
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <label>Créée le</label>
+                    <span>
+                        {% if camera.created_at %}
+                            {{ camera.created_at }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="camera-controls">
+                {% if camera.status == 'active' %}
+                    <button class="btn btn-warning btn-stop" data-id="{{ camera.id }}">⏸️ Arrêter la surveillance</button>
+                {% else %}
+                    <button class="btn btn-success btn-start" data-id="{{ camera.id }}">▶️ Démarrer la surveillance</button>
+                {% endif %}
+                <button class="btn btn-danger btn-delete" data-id="{{ camera.id }}">🗑️ Supprimer la caméra</button>
+            </div>
+        </div>
+
+        <!-- Recent Alerts Card -->
+        <div class="detail-card">
+            <h3>Dernières alertes (10 plus récentes)</h3>
+            {% if recentAlerts.length > 0 %}
+                <div class="alerts-mini-list">
+                    {% for alert in recentAlerts %}
+                    <a href="/alerts/{{ alert.id }}" class="alert-mini-item {{ alert.severity }}">
+                        <div class="alert-mini-icon">
+                            {% if alert.type_analyse == 'Police' %}🚔
+                            {% elif alert.type_analyse == 'Pompier' %}🚒
+                            {% elif alert.type_analyse == 'Ambulance' %}🚑
+                            {% endif %}
+                        </div>
+                        <div class="alert-mini-content">
+                            <strong>{{ alert.analysis_name }}</strong>
+                            <span class="alert-mini-time">
+                                {{ alert.date }}
+                            </span>
+                        </div>
+                        <span class="severity {{ alert.severity }}">{{ alert.severity }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="no-data">Aucune alerte pour cette caméra.</p>
+            {% endif %}
+        </div>
+
+        <!-- Recent Images Card -->
+        <div class="detail-card">
+            <h3>Dernières images capturées (10 plus récentes)</h3>
+            {% if recentImages.length > 0 %}
+                <div class="images-grid">
+                    {% for image in recentImages %}
+                    <a href="/images/{{ image.id }}" class="image-thumbnail">
+                        <img src="/api/images/{{ image.id }}" alt="Image #{{ image.id }}" loading="lazy">
+                        <div class="image-info">
+                            <span class="image-date">{{ image.date }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="no-data">Aucune image capturée pour cette caméra.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour modifier la caméra -->
+<div id="cameraModal" class="modal">
+    <div class="modal-content">
+    <span class="close" id="closeModalBtn">&times;</span>
+        <h3>Modifier la caméra #{{ camera.id }}</h3>
+    <form id="cameraForm">
+            <input type="hidden" id="cameraId" name="id" value="{{ camera.id }}">
+            
+            <div class="form-group">
+                <label for="ip">Adresse IP *</label>
+                <input type="text" id="ip" name="ip" required value="{{ camera.ip }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Nom d'utilisateur *</label>
+                <input type="text" id="username" name="username" required value="{{ camera.username }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Mot de passe *</label>
+                <input type="password" id="password" name="password" required value="{{ camera.password }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="model">Modèle</label>
+                <input type="text" id="model" name="model" value="{% if camera.model %}{{ camera.model }}{% else %}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="fk_position">Position</label>
+                <input type="number" id="fk_position" name="fk_position" value="{% if camera.fk_position %}{{ camera.fk_position }}{% else %}{% endif %}">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelModalBtn">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/js/cameras.js"></script>
+{% endblock %}
