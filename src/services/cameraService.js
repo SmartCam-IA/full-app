@@ -54,16 +54,28 @@ class CameraService {
     try {
       const { latitude, longitude, label, ...cameraPureData } = cameraData;
       
-      // Create position first
       let positionId = cameraPureData.fk_position;
       
       if (!positionId && latitude && longitude) {
-        // Create a new position if coordinates are provided
-        positionId = await Position.create({
-          latitude: parseFloat(latitude),
-          longitude: parseFloat(longitude),
-          label: label || `Camera ${cameraPureData.ip}`
-        });
+        const lat = parseFloat(latitude);
+        const lon = parseFloat(longitude);
+        
+        // Check if a position with these exact coordinates already exists
+        const existingPosition = await Position.findByCoordinates(lat, lon);
+        
+        if (existingPosition) {
+          // Use the existing position
+          console.log(`Using existing position ${existingPosition.id} for coordinates (${lat}, ${lon})`);
+          positionId = existingPosition.id;
+        } else {
+          // Create a new position if coordinates don't exist
+          console.log(`Creating new position for coordinates (${lat}, ${lon})`);
+          positionId = await Position.create({
+            latitude: lat,
+            longitude: lon,
+            label: label || `Camera ${cameraPureData.ip}`
+          });
+        }
       }
       
       if (!positionId) {
@@ -95,30 +107,72 @@ class CameraService {
   async updateCamera(cameraId, updates) {
     const { latitude, longitude, label, ...cameraUpdates } = updates;
     
-    // Update camera
+    // Get the current camera to access its old position
+    const camera = await Camera.findById(cameraId);
+    if (!camera) {
+      throw new Error('Camera not found');
+    }
+    
+    const oldPositionId = camera.fk_position;
+    let newPositionId = oldPositionId;
+    
+    // If GPS coordinates are provided, handle position update
+    if (latitude && longitude) {
+      const lat = parseFloat(latitude);
+      const lon = parseFloat(longitude);
+      
+      // Check if we need to change position
+      let needsNewPosition = false;
+      
+      if (oldPositionId) {
+        const oldPosition = await Position.findById(oldPositionId);
+        if (oldPosition && (oldPosition.latitude !== lat || oldPosition.longitude !== lon)) {
+          needsNewPosition = true;
+        }
+      } else {
+        needsNewPosition = true;
+      }
+      
+      if (needsNewPosition) {
+        // Check if a position with these exact coordinates already exists
+        const existingPosition = await Position.findByCoordinates(lat, lon);
+        
+        if (existingPosition) {
+          // Use the existing position
+          console.log(`Using existing position ${existingPosition.id} for coordinates (${lat}, ${lon})`);
+          newPositionId = existingPosition.id;
+          
+          // Update label if provided and different
+          if (label !== undefined && label !== existingPosition.label) {
+            await Position.update(existingPosition.id, { label });
+          }
+        } else {
+          // Create a new position
+          console.log(`Creating new position for coordinates (${lat}, ${lon})`);
+          newPositionId = await Position.create({
+            latitude: lat,
+            longitude: lon,
+            label: label || `Camera ${camera.ip}`
+          });
+        }
+        
+        // Update camera with new position
+        cameraUpdates.fk_position = newPositionId;
+      } else if (oldPositionId && label !== undefined) {
+        // Same coordinates, just update the label
+        await Position.update(oldPositionId, { label });
+      }
+    }
+    
+    // Update camera FIRST (to remove the foreign key constraint)
     await Camera.update(cameraId, cameraUpdates);
     
-    // Update position if GPS coordinates are provided
-    if ((latitude || longitude) && cameraUpdates.fk_position) {
-      const positionUpdates = {};
-      if (latitude) positionUpdates.latitude = parseFloat(latitude);
-      if (longitude) positionUpdates.longitude = parseFloat(longitude);
-      if (label !== undefined) positionUpdates.label = label;
-      
-      if (Object.keys(positionUpdates).length > 0) {
-        await Position.update(cameraUpdates.fk_position, positionUpdates);
-      }
-    } else if (latitude && longitude) {
-      // Get camera to find its position
-      const camera = await Camera.findById(cameraId);
-      if (camera && camera.fk_position) {
-        const positionUpdates = {
-          latitude: parseFloat(latitude),
-          longitude: parseFloat(longitude)
-        };
-        if (label !== undefined) positionUpdates.label = label;
-        
-        await Position.update(camera.fk_position, positionUpdates);
+    // THEN check if old position should be deleted (after camera is updated)
+    if (latitude && longitude && oldPositionId && newPositionId && oldPositionId !== newPositionId) {
+      const camerasUsingOldPosition = await Position.countCamerasUsingPosition(oldPositionId);
+      if (camerasUsingOldPosition === 0) {
+        console.log(`Deleting orphaned position ${oldPositionId}`);
+        await Position.delete(oldPositionId);
       }
     }
     
@@ -130,8 +184,22 @@ class CameraService {
    * @param {number} cameraId - Camera ID
    */
   async deleteCamera(cameraId) {
+    // Get camera to access its position
+    const camera = await Camera.findById(cameraId);
+    const positionId = camera ? camera.fk_position : null;
+    
     await videoProcessingService.stopProcessing(cameraId);
     await Camera.delete(cameraId);
+    
+    // Check if position should be deleted (if no other cameras use it)
+    if (positionId) {
+      const camerasUsingPosition = await Position.countCamerasUsingPosition(positionId);
+      if (camerasUsingPosition === 0) {
+        console.log(`Deleting orphaned position ${positionId} after camera deletion`);
+        await Position.delete(positionId);
+      }
+    }
+    
     console.log(`Camera ${cameraId} deleted successfully`);
   }
 

@@ -7,6 +7,7 @@ const path = require('path');
 const config = require('./config');
 const db = require('./config/database');
 const { initializeDatabase } = require('./config/initDatabase');
+const cameraService = require('./services/cameraService');
 
 // Import routes
 const camerasRouter = require('./routes/cameras');
@@ -123,6 +124,10 @@ async function startServer() {
     // Initialize database tables
     await initializeDatabase();
 
+    // Restart active cameras
+    console.log('Restarting active cameras...');
+    await restartActiveCameras();
+
     // Start listening
     app.listen(config.server.port, () => {
       console.log(`
@@ -156,16 +161,71 @@ async function startServer() {
   }
 }
 
+/**
+ * Restart all cameras with 'active' status
+ */
+async function restartActiveCameras() {
+  try {
+    const activeCameras = await cameraService.getCameras({ status: 'active' });
+    
+    if (activeCameras.length === 0) {
+      console.log('No active cameras to restart.');
+      return;
+    }
+
+    console.log(`Found ${activeCameras.length} active camera(s) to restart...`);
+    
+    for (const camera of activeCameras) {
+      try {
+        console.log(`Starting camera #${camera.id} (${camera.ip})...`);
+        await cameraService.startCamera(camera.id);
+        console.log(`✓ Camera #${camera.id} started successfully`);
+      } catch (err) {
+        console.error(`✗ Failed to start camera #${camera.id}:`, err.message);
+      }
+    }
+    
+    console.log('Active cameras restart completed.\n');
+  } catch (err) {
+    console.error('Error restarting active cameras:', err);
+  }
+}
+
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  process.exit(0);
+process.on('SIGTERM', async () => {
+  console.log('\nSIGTERM received, shutting down gracefully...');
+  await shutdownGracefully();
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  process.exit(0);
+process.on('SIGINT', async () => {
+  console.log('\nSIGINT received, shutting down gracefully...');
+  await shutdownGracefully();
 });
+
+/**
+ * Stop all active cameras before shutdown
+ */
+async function shutdownGracefully() {
+  try {
+    console.log('Stopping all active cameras...');
+    const activeCameras = await cameraService.getCameras({ status: 'active' });
+    
+    for (const camera of activeCameras) {
+      try {
+        console.log(`Stopping camera #${camera.id}...`);
+        await cameraService.stopCamera(camera.id);
+      } catch (err) {
+        console.error(`Error stopping camera #${camera.id}:`, err.message);
+      }
+    }
+    
+    console.log('All cameras stopped. Goodbye!');
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+  } finally {
+    process.exit(0);
+  }
+}
 
 // Start the server
 startServer();

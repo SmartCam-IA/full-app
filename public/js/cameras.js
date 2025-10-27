@@ -54,6 +54,9 @@ async function submitCamera(event) {
             showNotification('La longitude doit être entre -180 et 180', 'error');
             return;
         }
+    } else {
+        showNotification('Les coordonnées GPS sont obligatoires', 'error');
+        return;
     }
     
     try {
@@ -109,21 +112,60 @@ async function editCamera(id) {
         const camera = await apiRequest(`/api/cameras/${id}`);
         
         document.getElementById('cameraModal').classList.add('active');
-        document.getElementById('modalTitle').textContent = 'Modifier la caméra';
+        const modalTitle = document.getElementById('modalTitle');
+        if (modalTitle) {
+            modalTitle.textContent = 'Modifier la caméra';
+        }
         document.getElementById('cameraId').value = camera.id;
         document.getElementById('ip').value = camera.ip;
-        document.getElementById('port').value = camera.port || 554;
-        document.getElementById('path').value = camera.path || '/live0';
+        
+        // Set port only if the field exists
+        const portField = document.getElementById('port');
+        if (portField) {
+            portField.value = camera.port || 554;
+        }
+        
+        // Set path only if the field exists
+        const pathField = document.getElementById('path');
+        if (pathField) {
+            pathField.value = camera.path || '/live0';
+        }
+        
         document.getElementById('username').value = camera.username;
         document.getElementById('password').value = camera.password;
-        document.getElementById('model').value = camera.model || '';
+        
+        const modelField = document.getElementById('model');
+        if (modelField) {
+            modelField.value = camera.model || '';
+        }
+        
+        // Set fk_position only if the field exists
+        const fkPositionField = document.getElementById('fk_position');
+        if (fkPositionField) {
+            fkPositionField.value = camera.fk_position || '';
+        }
+        
+        // Reset position fields only if they exist
+        const latitudeField = document.getElementById('latitude');
+        const longitudeField = document.getElementById('longitude');
+        const labelField = document.getElementById('label');
+        
+        if (latitudeField) latitudeField.value = '';
+        if (longitudeField) longitudeField.value = '';
+        if (labelField) labelField.value = '';
         
         // Load position data if exists
-        if (camera.fk_position) {
-            const position = await apiRequest(`/api/positions/${camera.fk_position}`);
-            document.getElementById('latitude').value = position.latitude;
-            document.getElementById('longitude').value = position.longitude;
-            document.getElementById('label').value = position.label || '';
+        if (camera.fk_position && latitudeField && longitudeField) {
+            try {
+                const position = await apiRequest(`/api/positions/${camera.fk_position}`);
+                latitudeField.value = position.latitude;
+                longitudeField.value = position.longitude;
+                if (labelField) {
+                    labelField.value = position.label || '';
+                }
+            } catch (posError) {
+                console.warn('Could not load position data:', posError);
+            }
         }
     } catch (error) {
         showNotification(error.message, 'error');
@@ -149,7 +191,7 @@ function filterCameras() {
     cards.forEach(card => {
         if (!status || card.dataset.status === status) {
             card.style.display = 'block';
-        } else {
+        } else {    
             card.style.display = 'none';
         }
     });

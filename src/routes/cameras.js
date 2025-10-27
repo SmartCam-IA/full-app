@@ -102,7 +102,7 @@ router.post('/', async (req, res) => {
       label
     });
 
-    res.status(201).json({ id: cameraId, message: 'Camera created successfully' });
+    res.status(201).json({ id: Number(cameraId), message: 'Camera created successfully' });
   } catch (err) {
     console.error('Error creating camera:', err);
     res.status(500).json({ error: err.message || 'Failed to create camera' });
@@ -118,11 +118,38 @@ router.put('/:id', async (req, res) => {
     const cameraId = parseInt(req.params.id);
     const updates = req.body;
 
+    // Validate GPS coordinates if provided
+    if (updates.latitude || updates.longitude) {
+      const lat = parseFloat(updates.latitude);
+      const lon = parseFloat(updates.longitude);
+      
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ error: 'Invalid GPS coordinates' });
+      }
+      
+      if (lat < -90 || lat > 90) {
+        return res.status(400).json({ error: 'Latitude must be between -90 and 90' });
+      }
+      
+      if (lon < -180 || lon > 180) {
+        return res.status(400).json({ error: 'Longitude must be between -180 and 180' });
+      }
+    }
+
+    // Validate port if provided
+    if (updates.port) {
+      const cameraPort = parseInt(updates.port);
+      if (isNaN(cameraPort) || cameraPort < 1 || cameraPort > 65535) {
+        return res.status(400).json({ error: 'Port must be between 1 and 65535' });
+      }
+      updates.port = cameraPort;
+    }
+
     await cameraService.updateCamera(cameraId, updates);
     res.json({ message: 'Camera updated successfully' });
   } catch (err) {
     console.error('Error updating camera:', err);
-    res.status(500).json({ error: 'Failed to update camera' });
+    res.status(500).json({ error: err.message || 'Failed to update camera' });
   }
 });
 

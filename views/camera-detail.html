@@ -147,10 +147,27 @@
                 <label for="model">Modèle</label>
                 <input type="text" id="model" name="model" value="{% if camera.model %}{{ camera.model }}{% else %}{% endif %}">
             </div>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; color: #333;">Position GPS</h4>
+            
             <div class="form-group">
-                <label for="fk_position">Position</label>
-                <input type="number" id="fk_position" name="fk_position" value="{% if camera.fk_position %}{{ camera.fk_position }}{% else %}{% endif %}">
+                <label for="latitude">Latitude *</label>
+                <input type="number" id="latitude" name="latitude" step="0.00000001" required placeholder="46.519653">
+                <small>Format: décimal (ex: 46.519653)</small>
             </div>
+            
+            <div class="form-group">
+                <label for="longitude">Longitude *</label>
+                <input type="number" id="longitude" name="longitude" step="0.00000001" required placeholder="6.632273">
+                <small>Format: décimal (ex: 6.632273)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="label">Libellé de la position</label>
+                <input type="text" id="label" name="label" placeholder="Entrée principale">
+                <small>Description de l'emplacement (optionnel)</small>
+            </div>
+            
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" id="cancelModalBtn">Annuler</button>
                 <button type="submit" class="btn btn-primary">Enregistrer</button>

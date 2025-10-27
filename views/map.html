@@ -18,13 +18,16 @@
     <div class="map-legend">
         <h4>Légende</h4>
         <div class="legend-item">
-            <span class="marker active">📹</span> Caméra active
+            <span class="marker active">�</span> Caméra active
         </div>
         <div class="legend-item">
-            <span class="marker inactive">📹</span> Caméra inactive
+            <span class="marker inactive">⚫</span> Caméra inactive
         </div>
         <div class="legend-item">
-            <span class="marker error">📹</span> Caméra en erreur
+            <span class="marker error">�</span> Caméra en erreur
+        </div>
+        <div class="legend-item">
+            <span class="marker maintenance">🟠</span> Caméra en maintenance
         </div>
     </div>
 </div>
@@ -49,10 +52,35 @@
                     fetch(`/api/positions/${camera.fk_position}`)
                         .then(response => response.json())
                         .then(position => {
+                            // Choose icon based on camera status
+                            let iconHtml = '📹'; // Default camera icon
+                            let iconColor = '#666'; // Default color
+                            
+                            switch(camera.status) {
+                                case 'active':
+                                    iconHtml = '🟢';
+                                    iconColor = '#27ae60';
+                                    break;
+                                case 'inactive':
+                                    iconHtml = '⚫';
+                                    iconColor = '#7f8c8d';
+                                    break;
+                                case 'error':
+                                    iconHtml = '🔴';
+                                    iconColor = '#e74c3c';
+                                    break;
+                                case 'maintenance':
+                                    iconHtml = '🟠';
+                                    iconColor = '#f39c12';
+                                    break;
+                            }
+                            
                             const icon = L.divIcon({
-                                html: '📹',
+                                html: `<div style="font-size: 24px;">${iconHtml}</div>`,
                                 className: `camera-marker ${camera.status}`,
-                                iconSize: [30, 30]
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 15],
+                                popupAnchor: [0, -15]
                             });
                             
                             const marker = L.marker([position.latitude, position.longitude], { icon })
@@ -64,7 +92,7 @@
                                     <p><strong>IP:</strong> ${camera.ip}</p>
                                     <p><strong>Statut:</strong> <span class="status ${camera.status}">${camera.status}</span></p>
                                     <p><strong>Emplacement:</strong> ${position.label || 'Non défini'}</p>
-                                    <a href="/cameras" class="btn btn-sm">Gérer</a>
+                                    <a href="/cameras/${camera.id}" class="btn btn-sm">Voir détails</a>
                                 </div>
                             `);
                         });

@@ -24,6 +24,20 @@ class Position {
     return await db.query(sql);
   }
 
+  static async findByCoordinates(latitude, longitude) {
+    // Find position with exact coordinates
+    const sql = 'SELECT * FROM `position` WHERE latitude = ? AND longitude = ?';
+    const positions = await db.query(sql, [latitude, longitude]);
+    return positions.length > 0 ? positions[0] : null;
+  }
+
+  static async countCamerasUsingPosition(positionId) {
+    // Count how many cameras are using this position
+    const sql = 'SELECT COUNT(*) as count FROM camera WHERE fk_position = ?';
+    const result = await db.query(sql, [positionId]);
+    return result[0].count;
+  }
+
   static async update(id, updates) {
     const allowedFields = ['latitude', 'longitude', 'label'];
     const fields = [];
