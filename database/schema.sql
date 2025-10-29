@@ -86,5 +86,5 @@ FOREIGN KEY (fk_position) REFERENCES `position`(id) ON DELETE RESTRICT;
 -- Insert default analysis types
 INSERT INTO analyse (name, type_analyse, nbr_positive_necessary, api_endpoint, detection_threshold, image_extraction_interval) 
 VALUES 
-    ('Détection Incendie', 'Pompier', 2, 'https://api-inference.huggingface.co/models/fire-detection', 0.5, 10)
+    ('Détection Incendie', 'Pompier', 2, 'https://router.huggingface.co/hf-inference/models/EdBianchi/vit-fire-detection', 0.5, 10)
 ON DUPLICATE KEY UPDATE name=name;

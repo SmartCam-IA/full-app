@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>RTSP Sender - Choix d'image</title>
+        <style>
+            body {
+                font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+                    sans-serif;
+                margin: 0;
+                padding: 0;
+                color: #1b1f23;
+            }
+            header {
+                padding: 16px 20px;
+                background: #0d6efd;
+                color: white;
+            }
+            main {
+                padding: 20px;
+            }
+            .hint {
+                background: #f1f8ff;
+                border: 1px solid #c8e1ff;
+                padding: 12px;
+                border-radius: 6px;
+                margin-bottom: 16px;
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 14px;
+            }
+            .card {
+                border: 1px solid #e1e4e8;
+                border-radius: 8px;
+                overflow: hidden;
+                background: white;
+                cursor: pointer;
+                transition: box-shadow 0.15s ease;
+            }
+            .card:hover {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .card.selected {
+                outline: 3px solid #0d6efd;
+            }
+            .thumb {
+                width: 100%;
+                height: 140px;
+                object-fit: cover;
+                display: block;
+                background: #f6f8fa;
+            }
+            .name {
+                padding: 10px;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .toolbar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+            }
+            button {
+                padding: 8px 12px;
+                border: 1px solid #d1d5da;
+                border-radius: 6px;
+                background: #fafbfc;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #f3f4f6;
+            }
+            .small {
+                color: #586069;
+                font-size: 13px;
+            }
+            code {
+                background: #f6f8fa;
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1 style="margin: 0; font-size: 20px">
+                RTSP Sender — choisir l'image à diffuser (30 fps)
+            </h1>
+        </header>
+        <main>
+            <div class="hint">
+                <div>URL RTSP actuelle: <code id="rtspUrl"></code></div>
+                <div class="small">
+                    Utilisez cette URL dans votre lecteur RTSP (VLC, ffplay,
+                    votre application, etc.).
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button id="refreshBtn">Rafraîchir la liste</button>
+                <span id="status" class="small"></span>
+            </div>
+
+            <div id="grid" class="grid"></div>
+        </main>
+
+        <script>
+            const grid = document.getElementById('grid');
+            const statusEl = document.getElementById('status');
+            const rtspEl = document.getElementById('rtspUrl');
+            const refreshBtn = document.getElementById('refreshBtn');
+            let current = null;
+
+            function buildRtspUrl(port) {
+                const host = window.location.hostname || 'localhost';
+                const p = port || 8554;
+                return `rtsp://${host}:${p}/stream`;
+            }
+
+            async function fetchStatus() {
+                try {
+                    const r = await fetch('/api/status');
+                    const j = await r.json();
+                    current = j.current || null;
+                    rtspEl.textContent = j.rtsp || buildRtspUrl(j.rtspPort);
+                } catch (_) {
+                    rtspEl.textContent = buildRtspUrl();
+                }
+            }
+
+            function render(images) {
+                grid.innerHTML = '';
+                if (!images || images.length === 0) {
+                    grid.innerHTML =
+                        '<div class="small">Aucune image trouvée. Ajoutez des fichiers .jpg/.png/.bmp dans le dossier \\images.</div>';
+                    return;
+                }
+                for (const name of images) {
+                    const card = document.createElement('div');
+                    card.className =
+                        'card' + (current === name ? ' selected' : '');
+                    card.title = name;
+
+                    const img = document.createElement('img');
+                    img.className = 'thumb';
+                    img.src = `/images/${encodeURIComponent(name)}`;
+                    img.alt = name;
+
+                    const caption = document.createElement('div');
+                    caption.className = 'name';
+                    caption.textContent = name;
+
+                    card.appendChild(img);
+                    card.appendChild(caption);
+                    card.addEventListener('click', async () => {
+                        statusEl.textContent = 'Changement du flux...';
+                        try {
+                            const r = await fetch('/api/select', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name }),
+                            });
+                            const j = await r.json();
+                            if (!r.ok)
+                                throw new Error(
+                                    (j && j.error) || 'Échec inconnu'
+                                );
+                            current = name;
+                            rtspEl.textContent = j.rtsp || rtspEl.textContent;
+                            render(images);
+                            statusEl.textContent = 'Flux mis à jour.';
+                        } catch (e) {
+                            statusEl.textContent = 'Erreur: ' + e.message;
+                        }
+                    });
+
+                    grid.appendChild(card);
+                }
+            }
+
+            async function load() {
+                await fetchStatus();
+                const r = await fetch('/api/images');
+                const j = await r.json();
+                render(j.images);
+            }
+
+            refreshBtn.addEventListener('click', load);
+
+            load();
+        </script>
+    </body>
+</html>

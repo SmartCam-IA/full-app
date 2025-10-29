@@ -1,0 +1,23 @@
+# MediaMTX configuration
+# Documentation: https://github.com/bluenviron/mediamtx
+
+# RTSP server settings
+protocols: [tcp]
+encryption: "no"
+rtspAddress: :8554
+
+# Authentication for publishing and reading
+authMethod: internal
+
+# Path configuration
+paths:
+  stream:
+    # Publishers (those who send the stream) need authentication
+    publishUser: root
+    publishPass: root
+    publishIPs: []
+    
+    # Readers (those who view the stream) need authentication
+    readUser: root
+    readPass: root
+    readIPs: []

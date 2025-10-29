@@ -1,0 +1,15 @@
+{
+    "name": "rtspsender",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Serveur RTSP simple contrôlé par une interface web pour diffuser une image choisie à 30 fps.",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node server.js"
+    },
+    "dependencies": {
+            "express": "^4.19.2",
+            "sharp": "^0.33.5"
+    }
+}

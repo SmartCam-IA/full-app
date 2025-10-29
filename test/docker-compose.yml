@@ -1,0 +1,79 @@
+version: '3.8'
+services:
+    # Main application (SmartCam)
+    app:
+        build:
+            context: ..
+            dockerfile: Dockerfile
+        container_name: smartcam_app
+        ports:
+            - '3000:3000' # Web UI of the main app
+        environment:
+            - NODE_ENV=production
+            - PORT=3000
+            - DB_HOST=mariadb
+            - DB_PORT=3306
+            - DB_USER=smartcam
+            - DB_PASSWORD=DB_PASSWORD
+            - DB_NAME=smartcam_db
+            - ENCRYPTION_KEY=ENCRYPTION_KEY
+            - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+            - STORAGE_PATH=/usr/src/app/storage/images
+            - STORAGE_TYPE=local
+            - MOTION_DETECTION_THRESHOLD=30
+            - CAMERA_RECONNECT_INTERVAL=30000
+            - CAMERA_TIMEOUT=60000
+            - MAX_CONCURRENT_ANALYSIS=5
+        volumes:
+            - ../storage:/usr/src/app/storage
+            - ../database/schema.sql:/usr/src/app/database/schema.sql:ro
+        depends_on:
+            - mariadb
+        restart: unless-stopped
+
+    # Database for the main application
+    mariadb:
+        image: mariadb:10.11
+        container_name: smartcam_mariadb
+        environment:
+            - MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD
+            - MYSQL_DATABASE=smartcam_db
+            - MYSQL_USER=smartcam
+            - MYSQL_PASSWORD=DB_PASSWORD
+        volumes:
+            - mariadb_data:/var/lib/mysql
+            - ../database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+        # Expose to host optionally to inspect; not required for the app
+        # Avoid conflicts with other local DBs by using 3307 on host
+        ports:
+            - '3307:3306'
+        restart: unless-stopped
+
+    # RTSP server (MediaMTX)
+    rtspserver:
+        image: bluenviron/mediamtx:1.8.1
+        container_name: rtspserver
+        ports:
+            - '8554:8554' # RTSP TCP
+        volumes:
+            - ./mediamtx.yml:/mediamtx.yml:ro
+        restart: unless-stopped
+
+    # RTSP sender UI that pushes frames into the RTSP server
+    rtspsender:
+        build: .
+        container_name: rtspsender
+        depends_on:
+            - rtspserver
+        ports:
+            - '3333:3000' # Web UI (external 3333)
+        environment:
+            - PORT=3000
+            - RTSP_PORT=8554
+            - RTSP_PUBLISH_URL=rtsp://root:root@rtspserver:8554/stream
+        volumes:
+            - ./images:/app/images:ro
+        restart: unless-stopped
+
+volumes:
+    mariadb_data:

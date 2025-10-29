@@ -1,4 +1,3 @@
-
 # SmartCam-ImagesAnalysis
 
 Plateforme intelligente de vidéosurveillance pour l’analyse en temps réel des flux de caméras grâce à l’IA.
@@ -6,49 +5,56 @@ Plateforme intelligente de vidéosurveillance pour l’analyse en temps réel de
 ## 🎯 Présentation
 
 SmartCam-ImagesAnalysis est un système complet de vidéosurveillance basé sur Node.js qui :
-- Se connecte aux flux RTSP des caméras
-- Effectue la détection de mouvement en temps réel
-- Analyse les images via des modèles IA (Hugging Face)
-- Détecte la violence, le feu et les urgences médicales
-- Stocke les résultats dans MariaDB
-- Fournit une API REST pour la gestion et le monitoring
-- **Inclut une interface web (Express + Nunjucks) pour une gestion facile**
+
+-   Se connecte aux flux RTSP des caméras
+-   Effectue la détection de mouvement en temps réel
+-   Analyse les images via des modèles IA (Hugging Face)
+-   Détecte la violence, le feu et les urgences médicales
+-   Stocke les résultats dans MariaDB
+-   Fournit une API REST pour la gestion et le monitoring
+-   **Inclut une interface web (Express + Nunjucks) pour une gestion facile**
 
 ## 📋 Fonctionnalités
 
 ### Traitement vidéo
-- **Connexion RTSP** : Connexion aux caméras via le protocole RTSP
-- **Détection de mouvement** : Analyse uniquement les images où un mouvement est détecté
-- **Extraction d’images** : Intervalle configurable par type d’analyse
-- **Identifiants chiffrés** : Stockage sécurisé des mots de passe caméras (AES-256)
+
+-   **Connexion RTSP** : Connexion aux caméras via le protocole RTSP
+-   **Détection de mouvement** : Analyse uniquement les images où un mouvement est détecté
+-   **Extraction d’images** : Intervalle configurable par type d’analyse
+-   **Identifiants chiffrés** : Stockage sécurisé des mots de passe caméras (AES-256)
 
 ### Modules d’analyse
-- **Détection de violence** : Identifie les comportements violents (Police)
-- **Détection d’incendie** : Détecte feu et fumée (Pompiers)
-- **Urgence médicale** : Détecte les situations médicales critiques (Ambulance)
-- **Architecture extensible** : Ajout facile de nouveaux modules
+
+-   **Détection de violence** : Identifie les comportements violents (Police)
+-   **Détection d’incendie** : Détecte feu et fumée (Pompiers)
+-   **Urgence médicale** : Détecte les situations médicales critiques (Ambulance)
+-   **Architecture extensible** : Ajout facile de nouveaux modules
 
 ## 🚀 Installation
 
 ### Prérequis
-- Node.js (v16 ou supérieur)
-- MariaDB (v10.5 ou supérieur)
-- FFmpeg (pour le traitement vidéo)
+
+-   Node.js (v16 ou supérieur)
+-   MariaDB (v10.5 ou supérieur)
+-   FFmpeg (pour le traitement vidéo)
 
 ### Installation
 
 1. **Cloner le dépôt**
+
 ```bash
 git clone https://github.com/SmartCam-IA/SmartCam-ImagesAnalysis.git
 cd SmartCam-ImagesAnalysis
 ```
 
 2. **Installer les dépendances**
+
 ```bash
 npm install
 ```
 
 3. **Configurer l’environnement**
+
 ```bash
 cp .env.example .env
 # Modifier .env selon votre configuration
@@ -60,6 +66,7 @@ cp .env.example .env
 La base et les tables sont créées automatiquement au premier lancement si l’utilisateur a les droits nécessaires.
 
 **Option B : Manuel**
+
 ```bash
 # Créer la base
 mysql -u root -p -e "CREATE DATABASE smartcam_db;"
@@ -69,10 +76,57 @@ mysql -u root -p smartcam_db < database/schema.sql
 ```
 
 5. **Générer une clé de chiffrement**
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 # Copier la valeur dans ENCRYPTION_KEY du .env
 ```
+
+## 🧪 Environnement de test (Docker Compose)
+
+Un environnement de test complet est fourni dans le dossier `test/`. Il lance simultanément :
+
+-   l'application principale SmartCam (port 3000)
+-   une base MariaDB dédiée au test (port hôte 3307)
+-   un serveur RTSP MediaMTX (port 8554)
+-   une petite application web pour publier une image en continu vers le serveur RTSP (port 3333)
+
+### Démarrer l'environnement de test
+
+Depuis la racine du dépôt :
+
+```powershell
+cd test
+docker compose --env-file ../.env up --build
+```
+
+Accès :
+
+-   SmartCam (UI principale) : <http://localhost:3000>
+-   RTSP Sender (sélection d'image) : <http://localhost:3333>
+-   RTSP du serveur (lecture côté client) : `rtsp://root:root@localhost:8554/stream`
+
+Astuce : déposez vos images dans `test/images/` ; elles seront proposées dans l'UI du RTSP Sender.
+
+### Ajouter la caméra RTSP de test dans l'interface SmartCam
+
+Dans SmartCam, ouvrez « Caméras » → « Ajouter une caméra » et remplissez :
+
+-   Adresse IP : `rtspserver`
+-   Port : `8554`
+-   Chemin du flux : `/stream`
+-   Nom d'utilisateur : `root`
+-   Mot de passe : `root`
+-   Latitude / Longitude : valeurs décimales obligatoires (ex. `46.519653` / `6.632273`)
+-   Modèle / Libellé : optionnels
+
+Enregistrez, puis cliquez sur « Démarrer » sur la carte caméra. Le service va se connecter à l'URL interne : `rtsp://root:root@rtspserver:8554/stream` (les conteneurs partagent le même réseau Docker).
+
+### Dépannage (mode test)
+
+-   Si la base de données locale tourne déjà sur 3306, le compose de test expose MariaDB sur le port hôte 3307 (interne 3306). L'application communique en interne via le nom de service `mariadb`.
+-   Si le RTSP ne démarre pas, vérifiez que le port 8554 n'est pas bloqué et qu'une image est sélectionnée dans l'UI du RTSP Sender.
+-   Depuis l'hôte (VLC/ffplay), testez : `rtsp://root:root@localhost:8554/stream`.
 
 ## 🔧 Configuration
 
@@ -112,11 +166,11 @@ CAMERA_TIMEOUT=60000
 
 ### Tables principales
 
-- **camera** : Informations caméras (identifiants chiffrés)
-- **position** : Localisation géographique des caméras
-- **analyse** : Types d’analyse (violence, feu, médical)
-- **image** : Images capturées (horodatage, caméra)
-- **resultat_analyse** : Résultats d’analyse (score, gravité, vérification humaine, rejet)
+-   **camera** : Informations caméras (identifiants chiffrés)
+-   **position** : Localisation géographique des caméras
+-   **analyse** : Types d’analyse (violence, feu, médical)
+-   **image** : Images capturées (horodatage, caméra)
+-   **resultat_analyse** : Résultats d’analyse (score, gravité, vérification humaine, rejet)
 
 ## 🔌 API REST
 
@@ -160,15 +214,16 @@ PUT    /api/results/:id/resolve  # Marquer comme résolu
 Accéder à l’interface sur `http://localhost:3000` après démarrage.
 
 Fonctionnalités principales :
-- **Tableau de bord** (`/`) : Statut caméras, alertes récentes
-- **Caméras** (`/cameras`) : Gestion (ajout, édition, suppression, démarrage, arrêt)
-- **Détail caméra** (`/cameras/:id`) : Détail, alertes/images récentes
-- **Alertes** (`/alerts`) : Liste et gestion des alertes (par gravité)
-- **Détail alerte** (`/alerts/:id`) : Détail complet, vérification humaine, résolution
-- **Validation** (`/validation`) : Interface de validation humaine (accepter/rejeter)
-- **Analyses** (`/analyses`) : Configuration des modules d’analyse
-- **Carte** (`/map`) : Carte interactive des caméras
-- **Détail image** (`/images/:id`) : Image et résultats associés
+
+-   **Tableau de bord** (`/`) : Statut caméras, alertes récentes
+-   **Caméras** (`/cameras`) : Gestion (ajout, édition, suppression, démarrage, arrêt)
+-   **Détail caméra** (`/cameras/:id`) : Détail, alertes/images récentes
+-   **Alertes** (`/alerts`) : Liste et gestion des alertes (par gravité)
+-   **Détail alerte** (`/alerts/:id`) : Détail complet, vérification humaine, résolution
+-   **Validation** (`/validation`) : Interface de validation humaine (accepter/rejeter)
+-   **Analyses** (`/analyses`) : Configuration des modules d’analyse
+-   **Carte** (`/map`) : Carte interactive des caméras
+-   **Détail image** (`/images/:id`) : Image et résultats associés
 
 ### Démarrer le serveur
 
@@ -212,11 +267,11 @@ curl http://localhost:3000/api/results?is_resolved=false&limit=10
 
 ## 🔒 Sécurité
 
-- **Identifiants chiffrés** : Mots de passe caméras chiffrés AES-256
-- **Helmet.js** : Protection des headers HTTP
-- **CORS** : Cross-origin paramétrable
-- **Validation des entrées** : Toutes les entrées API sont validées
-- **Base de données sécurisée** : Requêtes paramétrées (anti-injection)
+-   **Identifiants chiffrés** : Mots de passe caméras chiffrés AES-256
+-   **Helmet.js** : Protection des headers HTTP
+-   **CORS** : Cross-origin paramétrable
+-   **Validation des entrées** : Toutes les entrées API sont validées
+-   **Base de données sécurisée** : Requêtes paramétrées (anti-injection)
 
 ## 🛠️ Développement
 
@@ -230,15 +285,16 @@ const axios = require('axios');
 const config = require('../config');
 
 class MonAnalyse {
-  constructor() {
-    this.name = 'Mon Analyse Personnalisée';
-    this.type = 'Police'; // ou 'Pompier', 'Ambulance'
-    this.endpoint = 'https://api-inference.huggingface.co/models/mon-modele';
-  }
+    constructor() {
+        this.name = 'Mon Analyse Personnalisée';
+        this.type = 'Police'; // ou 'Pompier', 'Ambulance'
+        this.endpoint =
+            'https://api-inference.huggingface.co/models/mon-modele';
+    }
 
-  async analyze(imageBuffer) {
-    // Logique d’analyse
-  }
+    async analyze(imageBuffer) {
+        // Logique d’analyse
+    }
 }
 
 module.exports = new MonAnalyse();
@@ -253,9 +309,9 @@ VALUES ('Mon Analyse Personnalisée', 'Police', 2, 'https://api-inference.huggin
 
 ## 📈 Monitoring
 
-- **Health Check** : `GET /health`
-- **Statistiques caméras** : `GET /api/cameras/stats`
-- **Statistiques alertes** : `GET /api/results/stats`
+-   **Health Check** : `GET /health`
+-   **Statistiques caméras** : `GET /api/cameras/stats`
+-   **Statistiques alertes** : `GET /api/results/stats`
 
 ## 🧪 Tests
 
@@ -272,57 +328,63 @@ npm test
 Cette erreur survient si l’initialisation de la base a échoué. Causes fréquentes :
 
 1. **Droits insuffisants**
-   ```bash
-   # Donner les droits nécessaires à l’utilisateur
-   mysql -u root -p
-   GRANT ALL PRIVILEGES ON *.* TO 'utilisateur'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
+
+    ```bash
+    # Donner les droits nécessaires à l’utilisateur
+    mysql -u root -p
+    GRANT ALL PRIVILEGES ON *.* TO 'utilisateur'@'localhost';
+    FLUSH PRIVILEGES;
+    ```
 
 2. **Nom de base incorrect**
-   - Vérifier le `.env` (DB_NAME)
-   - La base sera créée automatiquement si l’utilisateur a les droits
+
+    - Vérifier le `.env` (DB_NAME)
+    - La base sera créée automatiquement si l’utilisateur a les droits
 
 3. **MariaDB/MySQL non démarré**
-   ```bash
-   # Vérifier le statut
-   sudo systemctl status mariadb
-   # Ou pour MySQL
-   sudo systemctl status mysql
-   ```
+    ```bash
+    # Vérifier le statut
+    sudo systemctl status mariadb
+    # Ou pour MySQL
+    sudo systemctl status mysql
+    ```
 
 **Erreur : "Database connection failed"**
-- Vérifier que MariaDB/MySQL tourne
-- Vérifier les identifiants dans `.env`
-- Vérifier que le port 3306 n’est pas bloqué
-- Tester la connexion : `mysql -h localhost -u utilisateur -p`
+
+-   Vérifier que MariaDB/MySQL tourne
+-   Vérifier les identifiants dans `.env`
+-   Vérifier que le port 3306 n’est pas bloqué
+-   Tester la connexion : `mysql -h localhost -u utilisateur -p`
 
 ### Port déjà utilisé
 
 **Erreur : "Port 3000 already in use"**
-- Modifier `PORT=3001` dans `.env`
-- Ou stopper le processus sur 3000 :
-  ```bash
-  # Trouver le process
-  lsof -ti:3000
-  # Tuer le process
-  kill $(lsof -ti:3000)
-  ```
+
+-   Modifier `PORT=3001` dans `.env`
+-   Ou stopper le processus sur 3000 :
+    ```bash
+    # Trouver le process
+    lsof -ti:3000
+    # Tuer le process
+    kill $(lsof -ti:3000)
+    ```
 
 ### FFmpeg non trouvé
 
 **Erreur : "FFmpeg not found"**
-- Installer FFmpeg :
-  ```bash
-  # Ubuntu/Debian
-  sudo apt-get install ffmpeg
-  
-  # macOS
-  brew install ffmpeg
-  
-  # Windows
-  # Télécharger depuis https://ffmpeg.org/download.html
-  ```
+
+-   Installer FFmpeg :
+
+    ```bash
+    # Ubuntu/Debian
+    sudo apt-get install ffmpeg
+
+    # macOS
+    brew install ffmpeg
+
+    # Windows
+    # Télécharger depuis https://ffmpeg.org/download.html
+    ```
 
 ## 📝 Licence
 
@@ -334,57 +396,65 @@ SmartCam-IA Team
 
 ## 🙏 Remerciements
 
-- Hugging Face pour les modèles IA
-- FFmpeg pour le traitement vidéo
-- MariaDB pour la gestion de base de données
-   GRANT ALL PRIVILEGES ON *.* TO 'your_user'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
+-   Hugging Face pour les modèles IA
+-   FFmpeg pour le traitement vidéo
+-   MariaDB pour la gestion de base de données
+    GRANT ALL PRIVILEGES ON _._ TO 'your_user'@'localhost';
+    FLUSH PRIVILEGES;
+
+    ```
+
+    ```
 
 2. **Incorrect database name**
-   - Check your `.env` file and ensure `DB_NAME` matches your setup
-   - The database will be created automatically if the user has privileges
+
+    - Check your `.env` file and ensure `DB_NAME` matches your setup
+    - The database will be created automatically if the user has privileges
 
 3. **MariaDB/MySQL not running**
-   ```bash
-   # Check if MariaDB is running
-   sudo systemctl status mariadb
-   # Or for MySQL
-   sudo systemctl status mysql
-   ```
+    ```bash
+    # Check if MariaDB is running
+    sudo systemctl status mariadb
+    # Or for MySQL
+    sudo systemctl status mysql
+    ```
 
 **Error: "Database connection failed"**
-- Verify MariaDB/MySQL is running
-- Check credentials in `.env` file
-- Ensure port 3306 is not blocked by firewall
-- Test connection: `mysql -h localhost -u your_user -p`
+
+-   Verify MariaDB/MySQL is running
+-   Check credentials in `.env` file
+-   Ensure port 3306 is not blocked by firewall
+-   Test connection: `mysql -h localhost -u your_user -p`
 
 ### Port Already in Use
 
 **Error: "Port 3000 already in use"**
-- Change `PORT=3001` in `.env` file
-- Or stop the process using port 3000:
-  ```bash
-  # Find process
-  lsof -ti:3000
-  # Kill process
-  kill $(lsof -ti:3000)
-  ```
+
+-   Change `PORT=3001` in `.env` file
+-   Or stop the process using port 3000:
+    ```bash
+    # Find process
+    lsof -ti:3000
+    # Kill process
+    kill $(lsof -ti:3000)
+    ```
 
 ### FFmpeg Not Found
 
 **Error: "FFmpeg not found"**
-- Install FFmpeg:
-  ```bash
-  # Ubuntu/Debian
-  sudo apt-get install ffmpeg
-  
-  # macOS
-  brew install ffmpeg
-  
-  # Windows
-  # Download from https://ffmpeg.org/download.html
-  ```
+
+-   Install FFmpeg:
+
+    ```bash
+    # Ubuntu/Debian
+    sudo apt-get install ffmpeg
+
+    # macOS
+    brew install ffmpeg
+
+    # Windows
+    # Download from https://ffmpeg.org/download.html
+    ```
 
 ## 👥 Contributors
 
@@ -392,6 +462,6 @@ SmartCam-IA Team
 
 ## 🙏 Acknowledgments
 
-- Hugging Face for AI models
-- FFmpeg for video processing
-- MariaDB for database management
+-   Hugging Face for AI models
+-   FFmpeg for video processing
+-   MariaDB for database management
